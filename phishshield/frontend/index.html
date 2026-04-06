@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PhishShield</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(-45deg, #1e3c72, #2a5298, #4facfe, #00f2fe);
+            background-size: 400% 400%;
+            animation: gradientBG 10s ease infinite;
+            text-align: center;
+            color: white;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        h1 {
+            margin-top: 40px;
+            font-size: 40px;
+        }
+
+        .card {
+            background: white;
+            color: black;
+            width: 420px;
+            margin: 40px auto;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+        }
+
+        input {
+            width: 90%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+        }
+
+        button {
+            margin-top: 15px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            background: #2a5298;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #1e3c72;
+        }
+
+        .badge {
+            padding: 6px 12px;
+            border-radius: 12px;
+            color: white;
+            display: inline-block;
+            margin-top: 10px;
+        }
+
+        .high { background: red; }
+        .medium { background: orange; }
+        .low { background: green; }
+
+        .progress-bar {
+            width: 100%;
+            background: #ddd;
+            border-radius: 10px;
+            margin-top: 10px;
+        }
+
+        .progress {
+            height: 10px;
+            border-radius: 10px;
+        }
+
+        .loading {
+            margin-top: 10px;
+            font-style: italic;
+        }
+
+        ul {
+            text-align: left;
+        }
+    </style>
+</head>
+
+<body>
+
+<h1>🔐 PhishShield</h1>
+
+<div class="card">
+    <input type="text" id="url" placeholder="Enter URL">
+    <br>
+    <button onclick="scanURL()">Scan</button>
+
+    <div class="loading" id="loading"></div>
+
+    <div id="result"></div>
+</div>
+
+<script>
+async function scanURL() {
+    const url = document.getElementById("url").value;
+
+    document.getElementById("loading").innerText = "🔍 Scanning...";
+    document.getElementById("result").innerHTML = "";
+
+    try {
+        const response = await fetch("http://127.0.0.1:5001/scan", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ url })
+        });
+
+        const data = await response.json();
+        document.getElementById("loading").innerText = "";
+
+        let colorClass = "low";
+        if (data.risk_level === "High") colorClass = "high";
+        else if (data.risk_level === "Medium") colorClass = "medium";
+
+        let progressColor = "green";
+        if (data.risk_score > 60) progressColor = "red";
+        else if (data.risk_score > 30) progressColor = "orange";
+
+        document.getElementById("result").innerHTML = `
+            <h2>Verdict: ${data.verdict}</h2>
+            <span class="badge ${colorClass}">${data.risk_level}</span>
+
+            <p><b>Risk Score:</b> ${data.risk_score}</p>
+
+            <div class="progress-bar">
+                <div class="progress" style="width:${data.risk_score}%; background:${progressColor};"></div>
+            </div>
+
+            <p><b>Response Time:</b> ${data.response_time_ms} ms</p>
+
+            <h3>Reasons:</h3>
+            <ul>
+                ${data.reasons.map(r => `<li>${r}</li>`).join("")}
+            </ul>
+        `;
+    } catch (err) {
+        document.getElementById("loading").innerText = "";
+        document.getElementById("result").innerHTML =
+            "<p style='color:red;'>Error connecting to backend</p>";
+    }
+}
+</script>
+
+</body>
+</html>
